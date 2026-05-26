@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scan &amp; Print — Label Maker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f0ece4; --surface: #fff; --accent: #1a1a2e; --red: #e63946;
+    --green: #2d6a4f; --green-light: #d8f3dc; --text: #1a1a2e;
+    --muted: #8a8475; --border: #d4cfc5; --r: 6px;
+    --font-h: 'Syne', sans-serif; --font-m: 'DM Mono', monospace;
+  }
+  body { font-family: var(--font-m); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--accent); color: #fff; padding: 16px 28px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo { font-family: var(--font-h); font-size: 21px; font-weight: 800; letter-spacing: -.5px; }
+  .sub  { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 2px; }
+  .badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; padding: 3px 10px; border-radius: 20px; }
+  .sheet-status { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-family: var(--font-m); }
+  .sheet-status.loading { background: rgba(255,255,255,.15); color: #fff; }
+  .sheet-status.ok      { background: var(--green-light); color: var(--green); }
+  .sheet-status.err     { background: #fdecea; color: var(--red); }
+  .reload-btn { font-family: var(--font-m); font-size: 11px; background: transparent; border: 1px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 3px 10px; border-radius: 20px; cursor: pointer; }
+  .reload-btn:hover { background: rgba(255,255,255,.1); }
+
+  .container { max-width: 820px; margin: 0 auto; padding: 24px 22px 60px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 22px 26px; margin-bottom: 18px; }
+  .card-title { font-family: var(--font-h); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .step { background: var(--accent); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+
+  /* Scan */
+  .scan-row { display: flex; gap: 12px; align-items: flex-end; }
+  .scan-field { flex: 1; }
+  .scan-field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+  #scan-input {
+    width: 100%; border: 2px solid var(--border); border-radius: var(--r);
+    padding: 13px 16px; font-family: var(--font-m); font-size: 20px; font-weight: 500;
+    color: var(--text); background: var(--bg); outline: none;
+    transition: border-color .15s, background .15s; letter-spacing: .04em;
+  }
+  #scan-input:focus   { border-color: var(--accent); background: #fff; }
+  #scan-input.found   { border-color: var(--green);  background: var(--green-light); }
+  #scan-input.missing { border-color: var(--red);    background: #fdecea; }
+
+  .lookup-result { margin-top: 12px; padding: 12px 16px; border-radius: var(--r); font-size: 13px; display: none; }
+  .lookup-result.found   { background: var(--green-light); border: 1px solid #95d5b2; color: var(--green); }
+  .lookup-result.missing { background: #fdecea; border: 1px solid #f5b8b5; color: var(--red); }
+  .prod-name  { font-size: 16px; font-weight: 600; color: var(--text); margin-top: 3px; }
+  .prod-price { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 1px; }
+
+  /* Buttons */
+  .btn { font-family: var(--font-m); font-size: 13px; font-weight: 500; padding: 11px 22px; border-radius: var(--r); border: none; cursor: pointer; transition: opacity .15s, transform .1s; white-space: nowrap; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary   { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: .85; }
+  .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-red   { background: var(--red);   color: #fff; }
+  .btn-red:hover   { opacity: .85; }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-green:hover { opacity: .85; }
+
+  /* Labels stack */
+  .labels-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+  }
+  .labels-header-left { display: flex; align-items: center; gap: 10px; }
+  .label-count { font-size: 12px; background: var(--bg); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; color: var(--muted); }
+  .hint-text { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  .labels-stack { display: flex; flex-direction: column; gap: 16px; }
+
+  .label-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--r);
+    padding: 14px; display: flex; align-items: center; gap: 16px;
+    animation: slideIn .2s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .label-card .lc-num   { font-size: 11px; color: var(--muted); flex: 0 0 24px; text-align: center; }
+  .label-card .lc-img   { flex: 0 0 auto; }
+  .label-card .lc-img canvas { display: block; width: 250px; height: 125px; border: 1px solid #ddd; border-radius: 3px; background: white; }
+  .label-card .lc-info  { flex: 1; }
+  .label-card .lc-name  { font-size: 13px; font-weight: 600; }
+  .label-card .lc-price { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .label-card .lc-bc    { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .label-card .lc-actions { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+
+  .save-btn {
+    font-family: var(--font-m); font-size: 12px; font-weight: 500;
+    padding: 8px 14px; border-radius: var(--r); border: 1px solid var(--green);
+    color: var(--green); background: transparent; cursor: pointer; white-space: nowrap;
+    text-decoration: none; display: inline-block; text-align: center;
+  }
+  .save-btn:hover { background: var(--green-light); }
+  .del-btn {
+    font-family: var(--font-m); font-size: 12px; padding: 8px 14px;
+    border-radius: var(--r); border: 1px solid var(--border);
+    color: var(--muted); background: transparent; cursor: pointer;
+  }
+  .del-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+  .empty-state .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  @media (max-width: 600px) {
+    .label-card { flex-wrap: wrap; }
+    .label-card .lc-img canvas { width: 200px; height: 100px; }
+    .label-card .lc-actions { flex-direction: row; }
+  }
+
+  /* Camera scanner */
+  #camera-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.92);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #camera-modal.open { display: flex; }
+  #camera-modal h3 { font-family: var(--font-h); color: #fff; font-size: 18px; margin-bottom: 6px; }
+  #camera-modal p  { color: rgba(255,255,255,.6); font-size: 12px; margin-bottom: 16px; text-align:center; }
+  #camera-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+  }
+  #camera-video {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+  }
+  #scan-line {
+    position: absolute;
+    left: 10%; right: 10%;
+    height: 2px;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    animation: scanline 2s ease-in-out infinite;
+    top: 50%;
+  }
+  @keyframes scanline {
+    0%   { top: 20%; }
+    50%  { top: 80%; }
+    100% { top: 20%; }
+  }
+  .cam-corners {
+    position: absolute;
+    inset: 12px;
+    pointer-events: none;
+  }
+  .cam-corners::before, .cam-corners::after,
+  .cam-corner-br, .cam-corner-bl {
+    content: '';
+    position: absolute;
+    width: 24px; height: 24px;
+    border-color: #fff;
+    border-style: solid;
+    border-width: 0;
+  }
+  .cam-corners::before { top:0; left:0; border-top-width:3px; border-left-width:3px; border-radius:4px 0 0 0; }
+  .cam-corners::after  { top:0; right:0; border-top-width:3px; border-right-width:3px; border-radius:0 4px 0 0; }
+  .cam-corner-br { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 4px 0; }
+  .cam-corner-bl { bottom:0; left:0;  border-bottom-width:3px; border-left-width:3px;  border-radius:0 0 0 4px; }
+  #cam-result {
+    margin-top: 14px;
+    font-size: 14px;
+    font-family: var(--font-m);
+    color: #fff;
+    min-height: 22px;
+    text-align: center;
+  }
+  #cam-result.found   { color: #6fcf8f; }
+  #cam-result.missing { color: #f5a5a8; }
+  .cam-btns { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+  .btn-cam-close { background: transparent; border: 1px solid rgba(255,255,255,.35); color: #fff; }
+  .btn-cam-close:hover { background: rgba(255,255,255,.1); }
+
+  @media print {
+    header, .card:first-of-type, .card:nth-of-type(2), .labels-header { display: none !important; }
+    .label-card { border: none !important; padding: 0 !important; background: white !important; page-break-after: always; display: block !important; }
+    .label-card:last-child { page-break-after: avoid; }
+    .lc-num, .lc-info, .lc-actions, .lc-num { display: none !important; }
+    .lc-img canvas { width: 50mm !important; height: 25mm !important; }
+    @page { size: 50mm 25mm landscape; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Scan &amp; Print</div>
+    <div class="sub">Live Google Sheets · 50×25mm Zebra Labels</div>
+  </div>
+  <span class="sheet-status loading" id="sheet-status">⏳ Loading…</span>
+  <button class="reload-btn" onclick="loadSheet()">↻ Refresh</button>
+  <span class="badge">300 DPI</span>
+</header>
+
+<div class="container">
+
+  <!-- SCAN -->
+  <div class="card">
+    <div class="card-title"><span class="step">1</span> Scan Barcode</div>
+    <div class="scan-row">
+      <div class="scan-field">
+        <label>Scan with barcode gun or type &amp; press Enter</label>
+        <input type="text" id="scan-input" placeholder="Ready to scan…" autocomplete="off" autofocus />
+      </div>
+      <button class="btn btn-green" onclick="addLabel()">+ Add Label</button>
+      <button class="btn btn-primary" onclick="openCamera()" style="background:#6a4fcf;" title="Scan with camera">📷</button>
+    </div>
+    <div class="lookup-result" id="lookup-result"></div>
+  </div>
+
+  <!-- LABELS STACK -->
+  <div class="card">
+    <div class="labels-header">
+      <div class="labels-header-left">
+        <div class="card-title" style="margin:0"><span class="step">2</span> Generated Labels</div>
+        <span class="label-count" id="label-count">0 labels</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="saveAllAsPDF()">📄 Save All as PDF</button>
+        <button class="btn btn-primary" id="copy-btn" onclick="copyAllToClipboard()" style="background:#6a4fcf;">📥 Download All Labels</button>
+        <button class="btn btn-secondary" onclick="clearAll()">✕ Clear All</button>
+      </div>
+    </div>
+    <div class="hint-text" style="margin-bottom:14px;">Each label appears below as you scan. Right-click a label → <strong>Save image as</strong> to download as PNG.</div>
+    <div class="labels-stack" id="labels-stack">
+      <div class="empty-state">
+        <div class="empty-icon">🏷️</div>
+        Scan a barcode above to generate labels
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────
+const SHEET_ID  = '1tX4Uz-XQxYO5HwuWaIS-Ezsl_UgArmhzOR4d9Ll_W3U';
+const CSV_URL   = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+const COL_BC    = 'Barcode';
+const COL_NAME  = 'Product Name';
+const COL_PRICE = 'Selling Price';
+
+// ─── Canvas constants (300 DPI 50×25mm) ──────────────────────────────────
+const W = 591, H = 295, PAD = 14;
+const TEXT_H = Math.round(H * 0.40);
+const BAR_Y  = TEXT_H;
+const BAR_H  = H - TEXT_H;
+
+// ─── State ────────────────────────────────────────────────────────────────
+let products     = {};
+let currentMatch = null;
+let scanTimer    = null;
+let labelCount   = 0;
+
+// ─── Load sheet ───────────────────────────────────────────────────────────
+async function loadSheet() {
+  const st = document.getElementById('sheet-status');
+  st.className = 'sheet-status loading';
+  st.textContent = '⏳ Loading…';
+  try {
+    const res = await fetch(CSV_URL + '&cachebust=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if (!rows.length) throw new Error('No rows');
+    products = {};
+    let n = 0;
+    rows.forEach(row => {
+      const raw = String(row[COL_BC] || '').trim().replace(/\.0+$/, '');
+      if (raw) { products[raw] = { name: String(row[COL_NAME]||'').trim(), price: String(row[COL_PRICE]||'').trim() }; n++; }
+    });
+    st.className = 'sheet-status ok';
+    st.textContent = `✓ ${n} products`;
+    document.getElementById('scan-input').focus();
+  } catch(e) {
+    st.className = 'sheet-status err';
+    st.textContent = '✕ Sheet not accessible';
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = splitLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line);
+    const row = {};
+    headers.forEach((h, i) => row[h.trim()] = (vals[i]||'').trim());
+    return row;
+  });
+}
+
+function splitLine(line) {
+  const r = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') inQ = !inQ;
+    else if (c === ',' && !inQ) { r.push(cur); cur = ''; }
+    else cur += c;
+  }
+  r.push(cur);
+  return r;
+}
+
+// ─── Lookup ───────────────────────────────────────────────────────────────
+const scanInput = document.getElementById('scan-input');
+const resultBox = document.getElementById('lookup-result');
+
+scanInput.addEventListener('input', () => {
+  clearTimeout(scanTimer);
+  scanTimer = setTimeout(doLookup, 280);
+});
+
+scanInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    clearTimeout(scanTimer);
+    doLookup();
+    if (currentMatch) addLabel();
+  }
+});
+
+function normalise(v) { return String(v).trim().replace(/\.0+$/, ''); }
+
+function doLookup() {
+  const val = normalise(scanInput.value);
+  if (!val) { resultBox.style.display = 'none'; scanInput.className = ''; currentMatch = null; return; }
+
+  const match = products[val] || products[String(Number(val))] || products[val.replace(/^0+/,'')];
+
+  if (match) {
+    currentMatch = { barcode: val, name: match.name, price: match.price };
+    resultBox.style.display = 'block';
+    resultBox.className = 'lookup-result found';
+    resultBox.innerHTML = `<div>✓ Found</div><div class="prod-name">${match.name}</div><div class="prod-price">${match.price}</div>`;
+    scanInput.className = 'found';
+  } else {
+    currentMatch = null;
+    resultBox.style.display = 'block';
+    resultBox.className = 'lookup-result missing';
+    resultBox.innerHTML = `✕ Barcode <strong>${val}</strong> not found`;
+    scanInput.className = 'missing';
+  }
+}
+
+// ─── Add label to stack ───────────────────────────────────────────────────
+function addLabel() {
+  if (!currentMatch) return;
+  const item = { ...currentMatch };
+
+  labelCount++;
+  const stack = document.getElementById('labels-stack');
+
+  // Remove empty state if present
+  const empty = stack.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  // Create canvas at full res
+  const canvas = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  drawLabel(item.name, item.price, item.barcode, canvas);
+
+  const id = 'lbl-' + labelCount;
+  const safeName = (item.name || 'label').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+
+  // Build card
+  const card = document.createElement('div');
+  card.className = 'label-card';
+  card.id = id;
+
+  // Left: number
+  const numEl = document.createElement('div');
+  numEl.className = 'lc-num';
+  numEl.textContent = labelCount;
+
+  // Middle: canvas preview
+  const imgWrap = document.createElement('div');
+  imgWrap.className = 'lc-img';
+  imgWrap.appendChild(canvas);
+
+  // Info
+  const info = document.createElement('div');
+  info.className = 'lc-info';
+  info.innerHTML = `<div class="lc-name">${item.name}</div><div class="lc-price">${item.price}</div><div class="lc-bc">${item.barcode}</div>`;
+
+  // Actions: save + delete
+  const actions = document.createElement('div');
+  actions.className = 'lc-actions';
+
+  // Save as PNG — use data URL directly on anchor
+  const saveA = document.createElement('a');
+  saveA.className = 'save-btn';
+  saveA.textContent = '⬇ Save PNG';
+  saveA.download = safeName + '_label.png';
+  saveA.href = canvas.toDataURL('image/png');
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del-btn';
+  delBtn.textContent = '✕ Remove';
+  delBtn.onclick = () => {
+    card.remove();
+    updateCount();
+  };
+
+  actions.appendChild(saveA);
+  actions.appendChild(delBtn);
+
+  card.appendChild(numEl);
+  card.appendChild(imgWrap);
+  card.appendChild(info);
+  card.appendChild(actions);
+
+  // Prepend so newest is at top
+  stack.insertBefore(card, stack.firstChild);
+
+  updateCount();
+
+  // Reset scan
+  scanInput.value = '';
+  scanInput.className = '';
+  resultBox.style.display = 'none';
+  currentMatch = null;
+  scanInput.focus();
+}
+
+function updateCount() {
+  const cards = document.querySelectorAll('.label-card').length;
+  document.getElementById('label-count').textContent = cards + ' label' + (cards !== 1 ? 's' : '');
+  if (cards === 0) {
+    document.getElementById('labels-stack').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏷️</div>
+        Scan a barcode above to generate labels
+      </div>`;
+  }
+}
+
+function clearAll() {
+  const stack = document.getElementById('labels-stack');
+  const cards = stack.querySelectorAll('.label-card');
+  if (!cards.length) return;
+  // remove each card directly — no confirm (blocked in iframes)
+  cards.forEach(c => c.remove());
+  labelCount = 0;
+  // manually set empty state
+  document.getElementById('label-count').textContent = '0 labels';
+  stack.innerHTML = '<div class="empty-state"><div class="empty-icon">🏷️</div>Scan a barcode above to generate labels</div>';
+}
+
+function copyAllToClipboard() {
+  const stack = document.getElementById('labels-stack');
+  const cards = Array.from(stack.querySelectorAll('.label-card')).reverse();
+  if (!cards.length) { showCopyStatus('No labels to copy!', 'err'); return; }
+
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = '⏳ Downloading…';
+  btn.disabled = true;
+
+  // Download each label as its own PNG, staggered so browser doesn't block them
+  let i = 0;
+  function downloadNext() {
+    if (i >= cards.length) {
+      btn.textContent = '✓ Done!';
+      btn.style.background = '#2d6a4f';
+      setTimeout(() => {
+        btn.textContent = '📥 Download All Labels';
+        btn.style.background = '#6a4fcf';
+        btn.disabled = false;
+      }, 2500);
+      showCopyStatus(
+        '✓ ' + cards.length + ' label PNG' + (cards.length > 1 ? 's' : '') + ' downloaded — in Word: Insert → Pictures, select all the files, insert. Each label will be 50×25mm. Set page margins to zero and page size to 50×25mm for perfect Zebra printing.',
+        'info'
+      );
+      return;
+    }
+
+    const card   = cards[i];
+    const canvas = card.querySelector('canvas');
+    const name   = (card.querySelector('.lc-name') || {}).textContent || ('label_' + (i + 1));
+    const safe   = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const fname  = (i + 1) + '_' + safe + '.png';
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+      i++;
+      // stagger each download 400ms so browser handles them all
+      setTimeout(downloadNext, 400);
+    }, 'image/png');
+  }
+
+  downloadNext();
+}
+
+function showCopyStatus(msg, type) {
+  let el = document.getElementById('copy-status');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'copy-status';
+    el.style.cssText = 'margin-top:12px;font-size:12px;padding:10px 14px;border-radius:6px;line-height:1.6;';
+    const hdr = document.querySelector('.labels-header');
+    hdr.parentNode.insertBefore(el, hdr.nextSibling);
+  }
+  el.textContent = msg;
+  el.style.background = type === 'err' ? '#fdecea' : '#e8f4fd';
+  el.style.color       = type === 'err' ? '#e63946' : '#1a5276';
+  el.style.display     = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 9000);
+}
+
+function saveAllAsPDF() {
+  const cards = document.querySelectorAll('.label-card');
+  if (!cards.length) { alert('No labels generated yet — scan some barcodes first.'); return; }
+
+  // Collect all canvases in order (they are prepended so reverse to get scan order)
+  const allCards = Array.from(cards).reverse();
+  const images = allCards.map(card => {
+    const canvas = card.querySelector('canvas');
+    return canvas.toDataURL('image/png');
+  });
+
+  // Build a print window with all labels — user prints to PDF using browser's "Save as PDF"
+  const pageStyle = `
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#fff; }
+    .lbl { width:50mm; height:25mm; page-break-after:always; overflow:hidden; }
+    .lbl:last-child { page-break-after:avoid; }
+    .lbl img { width:50mm; height:25mm; display:block; }
+    @page { size:50mm 25mm landscape; margin:0; }
+  `;
+
+  const bodyHTML = images.map(src => `<div class="lbl"><img src="${src}"/></div>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><title>Labels</title><style>${pageStyle}</style></head>
+  <body>${bodyHTML}
+  <script>
+    window.onload = function() {
+      setTimeout(function(){ window.print(); }, 400);
+    };
+  <\/script>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) {
+    // If popup blocked, create a download link instead
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.click();
+  }
+}
+
+// ─── Draw label ───────────────────────────────────────────────────────────
+function drawLabel(name, price, barcode, canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+
+  const availW   = W - PAD * 2;
+  const hasName  = name.length  > 0;
+  const hasPrice = price.length > 0;
+  const nameSlice  = hasName && hasPrice ? Math.round(TEXT_H * 0.38) : (hasName  ? TEXT_H : 0);
+  const priceSlice = hasName && hasPrice ? TEXT_H - nameSlice         : (hasPrice ? TEXT_H : 0);
+
+  ctx.fillStyle = '#000';
+  ctx.textBaseline = 'middle';
+
+  if (hasName) {
+    let fs = Math.min(nameSlice - 8, 38);
+    ctx.font = `bold ${fs}px Arial`;
+    while (fs > 9 && ctx.measureText(name).width > availW) { fs--; ctx.font = `bold ${fs}px Arial`; }
+    ctx.fillText(name, PAD, nameSlice / 2);
+  }
+
+  if (hasPrice) {
+    const priceTop = hasName ? nameSlice : 0;
+    let fs = Math.min(priceSlice - 8, 58);
+    ctx.font = `bold ${fs}px Arial`;
+    while (fs > 9 && ctx.measureText(price).width > availW) { fs--; ctx.font = `bold ${fs}px Arial`; }
+    ctx.fillText(price, PAD, priceTop + priceSlice / 2);
+  }
+
+  if ((hasName || hasPrice) && barcode) {
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, TEXT_H); ctx.lineTo(W - PAD, TEXT_H); ctx.stroke();
+  }
+
+  if (barcode) {
+    const tmp = document.createElement('canvas');
+    try {
+      JsBarcode(tmp, barcode, {
+        format: 'CODE128', width: 3, height: 120,
+        displayValue: true, fontSize: 20, margin: 0,
+        background: '#ffffff', lineColor: '#000', font: 'monospace'
+      });
+      const ratio = tmp.height / tmp.width;
+      let drawW = availW;
+      let drawH = Math.round(ratio * drawW);
+      if (drawH > BAR_H - 6) { drawH = BAR_H - 6; drawW = Math.round(drawH / ratio); }
+      const drawX = PAD + Math.round((availW - drawW) / 2);
+      const drawY = BAR_Y + Math.round((BAR_H - drawH) / 2);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, BAR_Y, W, BAR_H); ctx.clip();
+      ctx.drawImage(tmp, drawX, drawY, drawW, drawH);
+      ctx.restore();
+    } catch(e) {}
+  }
+}
+
+// ─── Camera scanner (html5-qrcode) ───────────────────────────────────────
+let html5Scanner = null;
+let scanCooldown = false;
+
+function openCamera() {
+  document.getElementById('camera-modal').classList.add('open');
+  document.getElementById('cam-result').textContent = 'Initialising camera…';
+  document.getElementById('cam-result').className = '';
+  startCamera();
+}
+
+function closeCamera() {
+  document.getElementById('camera-modal').classList.remove('open');
+  stopCamera();
+}
+
+function stopCamera() {
+  if (html5Scanner) {
+    html5Scanner.stop()
+      .catch(() => {})
+      .finally(() => { try { html5Scanner.clear(); } catch(e){} html5Scanner = null; });
+  }
+}
+
+function startCamera() {
+  if (!window.Html5Qrcode) {
+    document.getElementById('cam-result').textContent = '⚠ Scanner library not loaded — please refresh the page';
+    return;
+  }
+
+  // Clear any leftover content in the div
+  const camDiv = document.getElementById('camera-video');
+  camDiv.innerHTML = '';
+
+  html5Scanner = new Html5Qrcode('camera-video');
+
+  html5Scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 260, height: 130 } },
+    (decodedText) => {
+      if (scanCooldown) return;
+      scanCooldown = true;
+
+      const camRes = document.getElementById('cam-result');
+      const val    = normalise(decodedText);
+      const match  = products[val] || products[String(Number(val))] || products[val.replace(/^0+/, '')];
+
+      if (match) {
+        camRes.className   = 'found';
+        camRes.textContent = '✓ ' + match.name + ' — ' + match.price;
+        scanInput.value    = decodedText;
+        currentMatch       = { barcode: val, name: match.name, price: match.price };
+        addLabel();
+        setTimeout(() => {
+          scanCooldown       = false;
+          camRes.className   = '';
+          camRes.textContent = '👀 Ready — scan next barcode';
+        }, 1800);
+      } else {
+        camRes.className   = 'missing';
+        camRes.textContent = '✕ Not found: ' + decodedText;
+        setTimeout(() => {
+          scanCooldown       = false;
+          camRes.className   = '';
+          camRes.textContent = '👀 Point camera at a barcode…';
+        }, 2000);
+      }
+    },
+    () => {} // ignore per-frame decode errors
+  ).then(() => {
+    document.getElementById('cam-result').textContent = '👀 Point camera at a barcode…';
+  }).catch(err => {
+    const msg = String(err);
+    document.getElementById('cam-result').textContent =
+      msg.includes('NotAllowed') || msg.includes('Permission') || msg.includes('denied')
+        ? '⚠ Camera permission denied — please allow camera access in your browser settings'
+        : '⚠ Could not start camera: ' + msg;
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+loadSheet();
+</script>
+<!-- Camera Modal -->
+<div id="camera-modal">
+  <h3>Scan Barcode</h3>
+  <p>Point your camera at a barcode — it will detect automatically</p>
+  <div id="camera-wrap">
+    <div id="camera-video" style="width:100%;border-radius:12px;overflow:hidden;"></div>
+    <div id="scan-line"></div>
+    <div class="cam-corners">
+      <div class="cam-corner-br"></div>
+      <div class="cam-corner-bl"></div>
+    </div>
+  </div>
+  <div id="cam-result"></div>
+  <div class="cam-btns">
+    <button class="btn btn-cam-close" onclick="closeCamera()">✕ Close</button>
+  </div>
+</div>
+
+</body>
+</html>
