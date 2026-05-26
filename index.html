@@ -766,12 +766,12 @@ function startCamera() {
         addLabel();
       }
 
-      // Resume scanning after 3 seconds
+      // Resume scanning after 6 seconds
       setTimeout(() => {
         hideScanBanner();
         scanCooldown = false;
         document.getElementById('cam-result').textContent = '👀 Point camera at next barcode…';
-      }, 3000);
+      }, 6000);
     },
     () => {} // ignore per-frame decode errors
   ).then(() => {
