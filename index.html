@@ -181,14 +181,46 @@
   .cam-corner-bl { bottom:0; left:0;  border-bottom-width:3px; border-left-width:3px;  border-radius:0 0 0 4px; }
   #cam-result {
     margin-top: 14px;
-    font-size: 14px;
+    font-size: 13px;
     font-family: var(--font-m);
-    color: #fff;
+    color: rgba(255,255,255,0.6);
     min-height: 22px;
     text-align: center;
+    transition: all 0.2s;
   }
-  #cam-result.found   { color: #6fcf8f; }
-  #cam-result.missing { color: #f5a5a8; }
+  /* Big scan result banner */
+  #scan-banner {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.82);
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    gap: 8px;
+    animation: bannerIn 0.2s ease;
+  }
+  @keyframes bannerIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+  #scan-banner.found   { background: rgba(22,80,40,0.93); }
+  #scan-banner.missing { background: rgba(120,20,20,0.93); }
+  #scan-banner .sb-icon  { font-size: 40px; }
+  #scan-banner .sb-name  { font-size: 20px; font-weight: 700; color: #fff; font-family: var(--font-h); line-height: 1.2; }
+  #scan-banner .sb-price { font-size: 32px; font-weight: 800; color: #fff; font-family: var(--font-h); }
+  #scan-banner .sb-bc    { font-size: 11px; color: rgba(255,255,255,0.55); font-family: var(--font-m); margin-top: 2px; }
+  #scan-banner .sb-msg   { font-size: 14px; color: rgba(255,255,255,0.8); font-family: var(--font-m); }
+  #scan-banner .sb-countdown { 
+    width: 100%; height: 4px; background: rgba(255,255,255,0.2); 
+    border-radius: 2px; margin-top: 12px; overflow: hidden;
+  }
+  #scan-banner .sb-countdown-bar {
+    height: 100%; background: rgba(255,255,255,0.7);
+    border-radius: 2px;
+    transition: width 3s linear;
+    width: 100%;
+  }
   .cam-btns { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
   .btn-cam-close { background: transparent; border: 1px solid rgba(255,255,255,.35); color: #fff; }
   .btn-cam-close:hover { background: rgba(255,255,255,.1); }
@@ -663,6 +695,47 @@ function stopCamera() {
   }
 }
 
+function showScanBanner(match, rawText, val) {
+  const banner = document.getElementById('scan-banner');
+  const bar    = document.getElementById('sb-bar');
+
+  if (match) {
+    banner.className       = 'found';
+    document.getElementById('sb-icon').textContent  = '✓';
+    document.getElementById('sb-name').textContent  = match.name;
+    document.getElementById('sb-price').textContent = match.price;
+    document.getElementById('sb-bc').textContent    = rawText;
+    document.getElementById('sb-msg').textContent   = 'Label added — scanning again in 3s';
+  } else {
+    banner.className       = 'missing';
+    document.getElementById('sb-icon').textContent  = '✕';
+    document.getElementById('sb-name').textContent  = 'Not found';
+    document.getElementById('sb-price').textContent = '';
+    document.getElementById('sb-bc').textContent    = rawText;
+    document.getElementById('sb-msg').textContent   = 'Barcode not in product list';
+  }
+
+  banner.style.display = 'flex';
+
+  // Countdown bar — start at 100% then shrink to 0 over 3s
+  bar.style.transition = 'none';
+  bar.style.width      = '100%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bar.style.transition = 'width 3s linear';
+      bar.style.width      = '0%';
+    });
+  });
+
+  // Hide scan line while banner is shown
+  document.getElementById('scan-line').style.display = 'none';
+}
+
+function hideScanBanner() {
+  document.getElementById('scan-banner').style.display = 'none';
+  document.getElementById('scan-line').style.display   = 'block';
+}
+
 function startCamera() {
   if (!window.Html5Qrcode) {
     document.getElementById('cam-result').textContent = '⚠ Scanner library not loaded — please refresh the page';
@@ -682,30 +755,23 @@ function startCamera() {
       if (scanCooldown) return;
       scanCooldown = true;
 
-      const camRes = document.getElementById('cam-result');
-      const val    = normalise(decodedText);
-      const match  = products[val] || products[String(Number(val))] || products[val.replace(/^0+/, '')];
+      const val   = normalise(decodedText);
+      const match = products[val] || products[String(Number(val))] || products[val.replace(/^0+/, '')];
+
+      showScanBanner(match, decodedText, val);
 
       if (match) {
-        camRes.className   = 'found';
-        camRes.textContent = '✓ ' + match.name + ' — ' + match.price;
-        scanInput.value    = decodedText;
-        currentMatch       = { barcode: val, name: match.name, price: match.price };
+        scanInput.value = decodedText;
+        currentMatch    = { barcode: val, name: match.name, price: match.price };
         addLabel();
-        setTimeout(() => {
-          scanCooldown       = false;
-          camRes.className   = '';
-          camRes.textContent = '👀 Ready — scan next barcode';
-        }, 1800);
-      } else {
-        camRes.className   = 'missing';
-        camRes.textContent = '✕ Not found: ' + decodedText;
-        setTimeout(() => {
-          scanCooldown       = false;
-          camRes.className   = '';
-          camRes.textContent = '👀 Point camera at a barcode…';
-        }, 2000);
       }
+
+      // Resume scanning after 3 seconds
+      setTimeout(() => {
+        hideScanBanner();
+        scanCooldown = false;
+        document.getElementById('cam-result').textContent = '👀 Point camera at next barcode…';
+      }, 3000);
     },
     () => {} // ignore per-frame decode errors
   ).then(() => {
@@ -732,6 +798,14 @@ loadSheet();
     <div class="cam-corners">
       <div class="cam-corner-br"></div>
       <div class="cam-corner-bl"></div>
+    </div>
+    <div id="scan-banner">
+      <div class="sb-icon"  id="sb-icon">✓</div>
+      <div class="sb-name"  id="sb-name"></div>
+      <div class="sb-price" id="sb-price"></div>
+      <div class="sb-bc"    id="sb-bc"></div>
+      <div class="sb-msg"   id="sb-msg"></div>
+      <div class="sb-countdown"><div class="sb-countdown-bar" id="sb-bar"></div></div>
     </div>
   </div>
   <div id="cam-result"></div>
