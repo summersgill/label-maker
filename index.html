@@ -10,407 +10,346 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg:          #f5f5f7;
-    --surface:     #ffffff;
-    --surface2:    #f5f5f7;
-    --accent:      #0071e3;
-    --accent-dark: #0051a2;
-    --red:         #ff3b30;
-    --green:       #34c759;
-    --green-bg:    #f0faf3;
-    --red-bg:      #fff2f1;
-    --text:        #1d1d1f;
-    --text2:       #6e6e73;
-    --border:      #d2d2d7;
-    --border-soft: #e8e8ed;
-    --r:           12px;
-    --r-sm:        8px;
-    --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-    --shadow:      0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.06);
-    --font:        'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --bg:         #f5f5f7;
+    --surface:    #ffffff;
+    --surface2:   #f5f5f7;
+    --accent:     #0071e3;
+    --accent-dk:  #0051a2;
+    --red:        #ff3b30;
+    --green:      #34c759;
+    --green-bg:   #f0faf3;
+    --red-bg:     #fff2f1;
+    --text:       #1d1d1f;
+    --text2:      #6e6e73;
+    --border:     #d2d2d7;
+    --border-s:   #e8e8ed;
+    --r:          12px;
+    --r-sm:       8px;
+    --shadow-sm:  0 1px 3px rgba(0,0,0,.08);
+    --shadow:     0 4px 20px rgba(0,0,0,.1);
+    --font:       'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
+  html, body { height: 100%; }
   body {
     font-family: var(--font);
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
+    min-height: 100%;
     -webkit-font-smoothing: antialiased;
   }
 
   /* ── HEADER ── */
   header {
-    background: rgba(255,255,255,.85);
+    background: rgba(255,255,255,.88);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 1px solid var(--border-soft);
-    padding: 0 32px;
+    border-bottom: 1px solid var(--border-s);
+    padding: 0 20px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    height: 60px;
+    gap: 12px;
+    height: 56px;
     position: sticky;
     top: 0;
     z-index: 100;
   }
-  .logo-block { display: flex; flex-direction: column; gap: 1px; }
-  .logo { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.4px; }
-  .sub  { font-size: 11px; color: var(--text2); letter-spacing: .01em; }
-  .header-divider { width: 1px; height: 22px; background: var(--border); }
-  .badge {
-    background: var(--accent);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 20px;
-    letter-spacing: .02em;
-  }
+  .logo-block { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .logo { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -.4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub  { font-size: 10px; color: var(--text2); white-space: nowrap; }
+  .header-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
   .sheet-status {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: 20px;
+    font-size: 11px; font-weight: 500; padding: 3px 10px;
+    border-radius: 20px; white-space: nowrap; flex-shrink: 0;
   }
   .sheet-status.loading { background: #f5f5f7; color: var(--text2); }
   .sheet-status.ok      { background: var(--green-bg); color: #1a7a36; }
   .sheet-status.err     { background: var(--red-bg); color: var(--red); }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .reload-btn {
-    font-family: var(--font);
-    font-size: 12px;
-    font-weight: 500;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text2);
-    padding: 5px 14px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all .15s;
+    font-family: var(--font); font-size: 12px; font-weight: 500;
+    background: transparent; border: 1px solid var(--border); color: var(--text2);
+    padding: 5px 12px; border-radius: 20px; cursor: pointer; transition: all .15s; white-space: nowrap;
   }
   .reload-btn:hover { background: var(--surface2); color: var(--text); }
-  .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .badge {
+    background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+  }
+
+  /* Hide sub-header items on very small screens */
+  @media (max-width: 480px) {
+    .header-divider, .sub, .badge { display: none; }
+    .sheet-status { font-size: 10px; padding: 2px 8px; }
+  }
 
   /* ── LAYOUT ── */
-  .container { max-width: 820px; margin: 0 auto; padding: 28px 20px 80px; }
+  .container { max-width: 820px; margin: 0 auto; padding: 20px 16px 80px; }
 
   /* ── CARDS ── */
   .card {
     background: var(--surface);
     border-radius: var(--r);
-    padding: 22px 24px;
+    padding: 18px 18px;
     margin-bottom: 12px;
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-soft);
+    border: 1px solid var(--border-s);
   }
   .card-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text2);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    letter-spacing: -.01em;
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: -.01em;
   }
   .step {
-    background: var(--accent);
-    color: #fff;
-    width: 20px; height: 20px;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    flex-shrink: 0;
+    background: var(--accent); color: #fff; width: 20px; height: 20px;
+    border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
   }
 
-  /* ── SCAN INPUT ── */
-  .scan-row { display: flex; gap: 10px; align-items: flex-end; }
-  .scan-field { flex: 1; }
-  .scan-field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text2);
-    margin-bottom: 8px;
-    letter-spacing: -.01em;
-  }
+  /* ── SCAN ROW ── */
+  .scan-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
+  .scan-field { flex: 1; min-width: 0; }
+  .scan-field label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 7px; }
   #scan-input {
-    width: 100%;
-    border: 1.5px solid var(--border);
-    border-radius: var(--r-sm);
-    padding: 13px 16px;
-    font-family: var(--font);
-    font-size: 20px;
-    font-weight: 400;
-    color: var(--text);
-    background: var(--surface);
-    outline: none;
+    width: 100%; border: 1.5px solid var(--border); border-radius: var(--r-sm);
+    padding: 12px 14px; font-family: var(--font); font-size: 18px; font-weight: 400;
+    color: var(--text); background: var(--surface); outline: none;
     transition: border-color .15s, box-shadow .15s;
-    letter-spacing: -.01em;
   }
-  #scan-input::placeholder { color: #c0c0c5; }
+  #scan-input::placeholder { color: #c0c0c5; font-size: 15px; }
   #scan-input:focus   { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,.12); }
   #scan-input.found   { border-color: var(--green); box-shadow: 0 0 0 3px rgba(52,199,89,.12); background: var(--green-bg); }
   #scan-input.missing { border-color: var(--red);   box-shadow: 0 0 0 3px rgba(255,59,48,.12); background: var(--red-bg); }
 
+  .scan-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
   .lookup-result {
-    margin-top: 10px;
-    padding: 14px 16px;
-    border-radius: var(--r-sm);
-    font-size: 13px;
-    display: none;
+    margin-top: 10px; padding: 12px 14px; border-radius: var(--r-sm);
+    font-size: 13px; display: none;
   }
   .lookup-result.found   { background: var(--green-bg); border: 1px solid rgba(52,199,89,.25); }
   .lookup-result.missing { background: var(--red-bg);   border: 1px solid rgba(255,59,48,.2); color: var(--red); }
-  .prod-name  { font-size: 16px; font-weight: 600; color: var(--text); margin-top: 4px; letter-spacing: -.02em; }
-  .prod-price { font-size: 26px; font-weight: 700; color: var(--text); margin-top: 2px; letter-spacing: -.03em; }
+  .prod-name  { font-size: 16px; font-weight: 600; color: var(--text); margin-top: 3px; letter-spacing: -.02em; }
+  .prod-price { font-size: 24px; font-weight: 700; color: var(--text); margin-top: 2px; letter-spacing: -.03em; }
 
   /* ── BUTTONS ── */
   .btn {
-    font-family: var(--font);
-    font-size: 14px;
-    font-weight: 500;
-    padding: 11px 20px;
-    border-radius: var(--r-sm);
-    border: none;
-    cursor: pointer;
-    transition: all .15s;
-    white-space: nowrap;
-    letter-spacing: -.01em;
+    font-family: var(--font); font-size: 14px; font-weight: 500;
+    padding: 11px 18px; border-radius: var(--r-sm); border: none;
+    cursor: pointer; transition: all .15s; white-space: nowrap; letter-spacing: -.01em;
+    display: inline-flex; align-items: center; gap: 6px;
   }
   .btn:active { transform: scale(.97); }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-primary  { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dk); }
   .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
   .btn-secondary:hover { background: #ebebf0; }
-  .btn-red   { background: var(--red-bg); border: 1px solid rgba(255,59,48,.2); color: var(--red); }
-  .btn-red:hover   { background: #ffe5e3; }
+  .btn-red  { background: var(--red-bg); border: 1px solid rgba(255,59,48,.2); color: var(--red); }
+  .btn-red:hover  { background: #ffe5e3; }
   .btn-green { background: var(--green-bg); border: 1px solid rgba(52,199,89,.25); color: #1a7a36; }
-  .btn-green:hover { background: #e0f7e8; }
+  .btn-green:hover { background: #ddf5e6; }
 
-  /* ── LABELS STACK ── */
+  @media (max-width: 480px) {
+    .btn { font-size: 13px; padding: 10px 14px; }
+    .scan-actions { gap: 6px; }
+    .scan-actions .btn { flex: 1; justify-content: center; }
+  }
+
+  /* ── LABELS ── */
   .labels-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
   }
-  .labels-header-left { display: flex; align-items: center; gap: 10px; }
+  .labels-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .label-count {
-    font-size: 12px;
-    font-weight: 500;
-    background: var(--surface2);
-    border: 1px solid var(--border-soft);
-    padding: 4px 12px;
-    border-radius: 20px;
-    color: var(--text2);
+    font-size: 12px; font-weight: 500; background: var(--surface2);
+    border: 1px solid var(--border-s); padding: 3px 12px; border-radius: 20px; color: var(--text2);
   }
-  .hint-text { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.5; }
+  .label-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    .labels-header { flex-direction: column; align-items: stretch; }
+    .label-actions { justify-content: stretch; }
+    .label-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 9px 10px; }
+  }
 
+  .hint-text { font-size: 12px; color: var(--text2); margin-top: 2px; margin-bottom: 14px; line-height: 1.5; }
   .labels-stack { display: flex; flex-direction: column; gap: 8px; }
 
   .label-card {
-    background: var(--surface);
-    border: 1px solid var(--border-soft);
-    border-radius: var(--r-sm);
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    animation: slideIn .2s cubic-bezier(.16,1,.3,1);
-    transition: box-shadow .15s;
+    background: var(--surface2); border: 1px solid var(--border-s); border-radius: var(--r-sm);
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+    animation: slideIn .2s cubic-bezier(.16,1,.3,1); transition: box-shadow .15s;
   }
   .label-card:hover { box-shadow: var(--shadow); }
   @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
 
-  .label-card .lc-num   { font-size: 12px; color: var(--text2); flex: 0 0 28px; text-align: center; font-weight: 500; }
+  .label-card .lc-num   { font-size: 11px; color: var(--text2); flex: 0 0 22px; text-align: center; font-weight: 500; }
   .label-card .lc-img   { flex: 0 0 auto; }
-  .label-card .lc-img canvas { display: block; width: 240px; height: 120px; border: 1px solid var(--border-soft); border-radius: 6px; background: white; box-shadow: var(--shadow-sm); }
-  .label-card .lc-info  { flex: 1; }
-  .label-card .lc-name  { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
-  .label-card .lc-price { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -.03em; margin-top: 2px; }
-  .label-card .lc-bc    { font-size: 11px; color: var(--text2); margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .label-card .lc-actions { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+  .label-card .lc-img canvas { display: block; width: 200px; height: 100px; border: 1px solid var(--border-s); border-radius: 6px; background: #fff; }
+  .label-card .lc-info  { flex: 1; min-width: 0; }
+  .label-card .lc-name  { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .label-card .lc-price { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.03em; margin-top: 2px; }
+  .label-card .lc-bc    { font-size: 10px; color: var(--text2); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .label-card .lc-actions { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
 
   .save-btn {
-    font-family: var(--font);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: var(--r-sm);
-    border: 1px solid rgba(52,199,89,.3);
-    color: #1a7a36;
-    background: var(--green-bg);
-    cursor: pointer;
-    white-space: nowrap;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-    transition: all .15s;
+    font-family: var(--font); font-size: 12px; font-weight: 500;
+    padding: 7px 14px; border-radius: var(--r-sm); border: 1px solid rgba(52,199,89,.3);
+    color: #1a7a36; background: var(--green-bg); cursor: pointer; white-space: nowrap;
+    text-decoration: none; display: inline-block; text-align: center; transition: all .15s;
   }
   .save-btn:hover { background: #ddf5e6; }
   .del-btn {
-    font-family: var(--font);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: var(--r-sm);
-    border: 1px solid var(--border-soft);
-    color: var(--text2);
-    background: transparent;
-    cursor: pointer;
-    transition: all .15s;
+    font-family: var(--font); font-size: 12px; font-weight: 500;
+    padding: 7px 14px; border-radius: var(--r-sm); border: 1px solid var(--border-s);
+    color: var(--text2); background: transparent; cursor: pointer; transition: all .15s;
   }
   .del-btn:hover { border-color: rgba(255,59,48,.3); color: var(--red); background: var(--red-bg); }
 
-  .empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
-  .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: .35; display: block; }
-  .empty-state p { font-size: 14px; font-weight: 400; }
-
   @media (max-width: 600px) {
-    .label-card { flex-wrap: wrap; }
-    .label-card .lc-img canvas { width: 100%; height: auto; }
-    .label-card .lc-actions { flex-direction: row; }
+    .label-card { flex-wrap: wrap; gap: 10px; }
+    .label-card .lc-img { width: 100%; }
+    .label-card .lc-img canvas { width: 100%; height: auto; aspect-ratio: 2/1; }
+    .label-card .lc-actions { flex-direction: row; width: 100%; }
+    .label-card .lc-actions .save-btn,
+    .label-card .lc-actions .del-btn { flex: 1; text-align: center; }
   }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text2); }
+  .empty-state .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: .3; display: block; }
+  .empty-state p { font-size: 14px; }
 
   /* ── CAMERA MODAL ── */
   #camera-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    z-index: 9999;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
   }
   #camera-modal.open { display: flex; }
-  #camera-modal h3 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; letter-spacing: -.03em; }
-  #camera-modal p  { color: rgba(255,255,255,.6); font-size: 13px; margin-bottom: 20px; text-align: center; }
+  .camera-sheet {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 420px;
+    overflow: hidden; box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .camera-header {
+    padding: 16px 18px 0; display: flex; align-items: center; justify-content: space-between;
+  }
+  .camera-header h3 { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.03em; }
+  .camera-header p  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .camera-close-btn {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--surface2);
+    border: none; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--text2); flex-shrink: 0; transition: background .15s;
+  }
+  .camera-close-btn:hover { background: var(--border); }
   #camera-wrap {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 16px;
-    overflow: hidden;
-    background: #000;
-    box-shadow: 0 24px 48px rgba(0,0,0,.4);
+    position: relative; width: 100%; background: #000; margin-top: 14px;
+    min-height: 240px;
   }
   #camera-video { width: 100%; display: block; }
+  /* html5-qrcode injects its own video — make sure it fills */
+  #camera-video video { width: 100% !important; height: auto !important; display: block !important; }
+  #camera-video img   { display: none !important; }
   #scan-line {
-    position: absolute;
-    left: 8%; right: 8%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #0071e3, transparent);
-    box-shadow: 0 0 8px #0071e3;
-    animation: scanline 2s ease-in-out infinite;
-    top: 50%;
+    position: absolute; left: 8%; right: 8%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 8px var(--accent); animation: scanline 2s ease-in-out infinite; top: 50%;
+    pointer-events: none; z-index: 2;
   }
   @keyframes scanline { 0%,100% { top: 20%; } 50% { top: 80%; } }
-  .cam-corners { position: absolute; inset: 14px; pointer-events: none; }
+  .cam-corners { position: absolute; inset: 12px; pointer-events: none; z-index: 2; }
   .cam-corners::before, .cam-corners::after, .cam-corner-br, .cam-corner-bl {
-    content: ''; position: absolute; width: 22px; height: 22px;
-    border-color: rgba(255,255,255,.8); border-style: solid; border-width: 0;
+    content: ''; position: absolute; width: 20px; height: 20px;
+    border-color: rgba(255,255,255,.9); border-style: solid; border-width: 0;
   }
   .cam-corners::before { top:0; left:0; border-top-width:2px; border-left-width:2px; border-radius:4px 0 0 0; }
   .cam-corners::after  { top:0; right:0; border-top-width:2px; border-right-width:2px; border-radius:0 4px 0 0; }
   .cam-corner-br { bottom:0; right:0; border-bottom-width:2px; border-right-width:2px; border-radius:0 0 4px 0; }
   .cam-corner-bl { bottom:0; left:0;  border-bottom-width:2px; border-left-width:2px;  border-radius:0 0 0 4px; }
 
-  #cam-result { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,.6); min-height: 20px; text-align: center; }
-
   #scan-banner {
-    display: none;
-    position: absolute;
-    inset: 0;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    text-align: center;
-    gap: 6px;
-    animation: bannerIn .15s ease;
-    border-radius: 16px;
+    display: none; position: absolute; inset: 0; flex-direction: column;
+    align-items: center; justify-content: center; padding: 20px; text-align: center;
+    gap: 6px; animation: bannerIn .15s ease; z-index: 3;
   }
   @keyframes bannerIn { from { opacity:0; } to { opacity:1; } }
-  #scan-banner.found   { background: rgba(15,40,20,.95); }
-  #scan-banner.missing { background: rgba(40,10,10,.95); }
-  #scan-banner .sb-icon  { font-size: 36px; margin-bottom: 6px; }
-  #scan-banner .sb-name  { font-size: 17px; font-weight: 600; color: #fff; line-height: 1.3; letter-spacing: -.02em; }
-  #scan-banner .sb-price { font-size: 36px; font-weight: 700; color: #fff; letter-spacing: -.03em; }
-  #scan-banner .sb-bc    { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
-  #scan-banner .sb-msg   { font-size: 12px; color: rgba(255,255,255,.5); }
-  #scan-banner .sb-countdown { width: 100%; height: 3px; background: rgba(255,255,255,.15); border-radius: 2px; margin-top: 16px; overflow: hidden; }
-  #scan-banner .sb-countdown-bar { height: 100%; background: rgba(255,255,255,.6); border-radius: 2px; transition: width 3s linear; width: 100%; }
+  #scan-banner.found   { background: rgba(10,35,15,.95); display: flex; }
+  #scan-banner.missing { background: rgba(35,10,10,.95); display: flex; }
+  #scan-banner .sb-icon  { font-size: 32px; margin-bottom: 4px; }
+  #scan-banner .sb-name  { font-size: 16px; font-weight: 600; color: #fff; line-height: 1.3; letter-spacing: -.02em; }
+  #scan-banner .sb-price { font-size: 32px; font-weight: 700; color: #fff; letter-spacing: -.03em; }
+  #scan-banner .sb-bc    { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 2px; }
+  #scan-banner .sb-msg   { font-size: 11px; color: rgba(255,255,255,.5); }
+  #scan-banner .sb-countdown { width: 80%; height: 2px; background: rgba(255,255,255,.15); border-radius: 1px; margin-top: 14px; overflow: hidden; }
+  #scan-banner .sb-countdown-bar { height: 100%; background: rgba(255,255,255,.6); border-radius: 1px; transition: width 3s linear; width: 100%; }
 
-  .cam-btns { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
-  .btn-cam-close { background: rgba(255,255,255,.15); border: none; color: #fff; backdrop-filter: blur(4px); }
-  .btn-cam-close:hover { background: rgba(255,255,255,.25); }
+  #cam-result { padding: 12px 18px 16px; font-size: 13px; color: var(--text2); text-align: center; min-height: 40px; }
 
-  /* ── OMNI SCANNER SCREEN ── */
+  /* ── FULLSCREEN SCANNER ── */
   #scanner-screen {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    z-index: 8888;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    display: none; position: fixed; inset: 0; background: var(--bg);
+    z-index: 8888; flex-direction: column;
   }
   #scanner-screen.active { display: flex; }
+
   .ss-top {
-    width: 100%;
-    background: rgba(255,255,255,.85);
+    background: rgba(255,255,255,.88);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 1px solid var(--border-soft);
-    padding: 0 28px;
-    height: 60px;
+    border-bottom: 1px solid var(--border-s);
+    padding: 0 20px; height: 56px;
     display: flex; align-items: center; justify-content: space-between;
-    position: fixed; top: 0; left: 0;
+    flex-shrink: 0;
   }
-  .ss-top .logo { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.4px; }
-  .ss-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  .ss-top .logo { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -.4px; }
+  .ss-top-right { display: flex; align-items: center; gap: 10px; }
+  .ss-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    display: inline-block; margin-right: 6px; animation: pulse 2s infinite;
+  }
+  .ss-status-text { font-size: 12px; color: var(--text2); font-weight: 500; }
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+  .ss-body {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 32px 20px; overflow: hidden;
+  }
   .ss-ready {
     display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 16px; flex: 1;
+    justify-content: center; gap: 14px; text-align: center;
   }
-  .ss-icon { font-size: 56px; opacity: .1; display: block; }
-  .ss-waiting-text { font-size: 42px; font-weight: 700; color: #c0c0c8; letter-spacing: -.04em; }
-  .ss-sub { font-size: 15px; color: var(--text2); font-weight: 400; }
+  .ss-icon { font-size: 48px; opacity: .12; display: block; }
+  .ss-waiting-text { font-size: 36px; font-weight: 700; color: #c0c0c8; letter-spacing: -.04em; }
+  .ss-sub { font-size: 15px; color: var(--text2); }
+
   #scanner-hidden-input {
     position: fixed; opacity: 0; width: 1px; height: 1px;
-    top: 50%; left: 50%; border: none; outline: none; background: transparent;
+    top: 0; left: 0; border: none; outline: none; background: transparent;
+    pointer-events: none;
   }
 
   #ss-result {
-    display: none;
-    position: fixed;
-    inset: 0;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
-    gap: 10px;
+    display: none; position: absolute; inset: 56px 0 0 0;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px; text-align: center; gap: 10px;
     animation: ssIn .2s cubic-bezier(.16,1,.3,1);
   }
   @keyframes ssIn { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
-  #ss-result.found   { background: #f0faf3; display: flex; }
-  #ss-result.missing { background: #fff2f1; display: flex; }
-  #ss-result .sr-icon  { font-size: 56px; margin-bottom: 6px; }
-  #ss-result .sr-name  { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.2; max-width: 560px; letter-spacing: -.03em; }
-  #ss-result .sr-price { font-size: 64px; font-weight: 700; color: var(--text); letter-spacing: -.04em; line-height: 1; }
-  #ss-result .sr-bc    { font-size: 13px; color: var(--text2); margin-top: 4px; font-variant-numeric: tabular-nums; }
-  #ss-result .sr-msg   { font-size: 14px; color: var(--text2); margin-top: 4px; }
-  #ss-result .sr-bar-wrap { width: 280px; max-width: 80%; height: 3px; background: rgba(0,0,0,.08); border-radius: 2px; margin-top: 28px; overflow: hidden; }
+  #ss-result.found   { background: var(--green-bg); display: flex; }
+  #ss-result.missing { background: var(--red-bg);   display: flex; }
+  #ss-result .sr-icon  { font-size: 48px; }
+  #ss-result .sr-name  { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.2; max-width: 500px; letter-spacing: -.03em; }
+  #ss-result .sr-price { font-size: 60px; font-weight: 700; color: var(--text); letter-spacing: -.04em; line-height: 1; }
+  #ss-result .sr-bc    { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  #ss-result .sr-msg   { font-size: 14px; color: var(--text2); }
+  #ss-result .sr-bar-wrap { width: 260px; max-width: 80%; height: 3px; background: rgba(0,0,0,.1); border-radius: 2px; margin-top: 24px; overflow: hidden; }
   #ss-result .sr-bar { height: 100%; background: var(--accent); border-radius: 2px; width: 100%; transition: width 3s linear; }
-  #ss-result .sr-count { font-size: 12px; color: var(--text2); margin-top: 10px; font-weight: 500; }
+  #ss-result .sr-count { font-size: 12px; color: var(--text2); margin-top: 8px; font-weight: 500; }
+
+  @media (max-width: 480px) {
+    #ss-result .sr-price { font-size: 44px; }
+    #ss-result .sr-name  { font-size: 20px; }
+  }
 
   @media print {
     header, .card:first-of-type, .card:nth-of-type(2), .labels-header { display: none !important; }
@@ -444,11 +383,14 @@
     <div class="card-title"><span class="step">1</span> Scan Barcode</div>
     <div class="scan-row">
       <div class="scan-field">
-        <label>Scan with barcode gun or type &amp; press Enter &nbsp;·&nbsp; <a href="#" onclick="openScannerScreen(); return false;" style="color:var(--accent);font-weight:600;text-decoration:none;">Open fullscreen scanner mode →</a></label>
-        <input type="text" id="scan-input" placeholder="Ready to scan…" autocomplete="off" autofocus />
+        <label>Barcode gun or manual entry — press Enter to add</label>
+        <input type="text" id="scan-input" placeholder="Scan or type barcode…" autocomplete="off" autofocus />
       </div>
-      <button class="btn btn-green" onclick="addLabel()">+ Add Label</button>
-      <button class="btn btn-primary" onclick="openCamera()" style="background:#0071e3;" title="Scan with camera">📷</button>
+      <button class="btn btn-green" onclick="addLabel()">+ Add</button>
+    </div>
+    <div class="scan-actions">
+      <button class="btn btn-primary" onclick="openCamera()">📷 Camera Scan</button>
+      <button class="btn btn-secondary" onclick="openScannerScreen()">⛶ Fullscreen Mode</button>
     </div>
     <div class="lookup-result" id="lookup-result"></div>
   </div>
@@ -460,10 +402,10 @@
         <div class="card-title" style="margin:0"><span class="step">2</span> Generated Labels</div>
         <span class="label-count" id="label-count">0 labels</span>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="saveAllAsPDF()">📄 Save All as PDF</button>
-        <button class="btn btn-primary" id="copy-btn" onclick="copyAllToClipboard()" style="background:#0071e3;">📥 Download All Labels</button>
-        <button class="btn btn-secondary" onclick="clearAll()">✕ Clear All</button>
+      <div class="label-actions">
+        <button class="btn btn-primary" onclick="saveAllAsPDF()">📄 Save PDF</button>
+        <button class="btn btn-primary" id="copy-btn" onclick="copyAllToClipboard()">📥 Download PNGs</button>
+        <button class="btn btn-secondary" onclick="clearAll()">✕ Clear</button>
       </div>
     </div>
     <div class="hint-text" style="margin-bottom:14px;">Each label appears below as you scan. Right-click a label → <strong>Save image as</strong> to download as PNG.</div>
@@ -1028,7 +970,8 @@ function openScannerScreen() {
   document.getElementById('scanner-screen').classList.add('active');
   const inp = document.getElementById('scanner-hidden-input');
   inp.value = '';
-  inp.focus();
+  // Small delay to allow display:flex to render before focus
+  setTimeout(() => inp.focus(), 100);
 }
 
 function closeScannerScreen() {
@@ -1130,20 +1073,22 @@ function hideSSResult() {
 // ─── Init ─────────────────────────────────────────────────────────────────
 loadSheet();
 </script>
-<!-- Omni Scanner Screen -->
+<!-- Fullscreen Scanner Screen -->
 <div id="scanner-screen">
   <div class="ss-top">
     <span class="logo">Blackrod Emporium</span>
-    <span style="font-size:12px;color:rgba(255,255,255,.5);font-family:var(--font-m);display:flex;align-items:center;">
-      <span class="ss-status-dot"></span> Ready to scan
-    </span>
-    <button class="btn btn-secondary" style="color:#fff;border-color:rgba(255,255,255,.25);font-size:12px;padding:6px 14px;" onclick="closeScannerScreen()">✕ Exit</button>
+    <div class="ss-top-right">
+      <span class="ss-status-text"><span class="ss-status-dot"></span>Ready</span>
+      <button class="btn btn-secondary" onclick="closeScannerScreen()">✕ Exit</button>
+    </div>
   </div>
   <input type="text" id="scanner-hidden-input" autocomplete="off" />
-  <div class="ss-ready" id="ss-ready">
-    <div class="ss-icon">▐█▌</div>
-    <div class="ss-waiting-text">READY TO SCAN</div>
-    <div class="ss-sub">Point scanner at barcode</div>
+  <div class="ss-body">
+    <div class="ss-ready" id="ss-ready">
+      <span class="ss-icon">⬛</span>
+      <div class="ss-waiting-text">Ready to Scan</div>
+      <div class="ss-sub">Point your barcode scanner at a product</div>
+    </div>
   </div>
   <div id="ss-result">
     <div class="sr-icon"  id="sr-icon"></div>
@@ -1158,27 +1103,31 @@ loadSheet();
 
 <!-- Camera Modal -->
 <div id="camera-modal">
-  <h3>Scan Barcode</h3>
-  <p>Point your camera at a barcode — it will detect automatically</p>
-  <div id="camera-wrap">
-    <div id="camera-video" style="width:100%;border-radius:12px;overflow:hidden;"></div>
-    <div id="scan-line"></div>
-    <div class="cam-corners">
-      <div class="cam-corner-br"></div>
-      <div class="cam-corner-bl"></div>
+  <div class="camera-sheet">
+    <div class="camera-header">
+      <div>
+        <h3>Camera Scan</h3>
+        <p>Point at a barcode — detects automatically</p>
+      </div>
+      <button class="camera-close-btn" onclick="closeCamera()">✕</button>
     </div>
-    <div id="scan-banner">
-      <div class="sb-icon"  id="sb-icon">✓</div>
-      <div class="sb-name"  id="sb-name"></div>
-      <div class="sb-price" id="sb-price"></div>
-      <div class="sb-bc"    id="sb-bc"></div>
-      <div class="sb-msg"   id="sb-msg"></div>
-      <div class="sb-countdown"><div class="sb-countdown-bar" id="sb-bar"></div></div>
+    <div id="camera-wrap">
+      <div id="camera-video"></div>
+      <div id="scan-line"></div>
+      <div class="cam-corners">
+        <div class="cam-corner-br"></div>
+        <div class="cam-corner-bl"></div>
+      </div>
+      <div id="scan-banner">
+        <div class="sb-icon"  id="sb-icon">✓</div>
+        <div class="sb-name"  id="sb-name"></div>
+        <div class="sb-price" id="sb-price"></div>
+        <div class="sb-bc"    id="sb-bc"></div>
+        <div class="sb-msg"   id="sb-msg"></div>
+        <div class="sb-countdown"><div class="sb-countdown-bar" id="sb-bar"></div></div>
+      </div>
     </div>
-  </div>
-  <div id="cam-result"></div>
-  <div class="cam-btns">
-    <button class="btn btn-cam-close" onclick="closeCamera()">✕ Close</button>
+    <div id="cam-result">Ready to scan…</div>
   </div>
 </div>
 
