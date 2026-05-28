@@ -918,7 +918,7 @@ async function startCamera() {
   const camWrap   = document.getElementById('camera-wrap');
 
   // Check ZXing loaded
-  const ZX = window.ZXing;
+  const ZX = window.ZXingBrowser;
   if (!ZX || !ZX.BrowserMultiFormatReader) {
     camResult.textContent = '⚠ Scanner not available — please refresh';
     return;
