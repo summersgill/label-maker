@@ -5,7 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Blackrod Emporium — Stock Scanner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+// Load ZXing Browser with fallback CDNs for reliability on all devices
+(function() {
+  function loadScript(src, onload, onerror) {
+    var s = document.createElement('script');
+    s.src = src; s.onload = onload; s.onerror = onerror;
+    document.head.appendChild(s);
+  }
+  var cdns = [
+    'https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js',
+    'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js'
+  ];
+  var i = 0;
+  function tryNext() {
+    if (i >= cdns.length) {
+      window._zxingFailed = true;
+      console.error('ZXing failed to load from all CDNs');
+      return;
+    }
+    loadScript(cdns[i++], function() {
+      console.log('ZXing loaded from', cdns[i-1]);
+    }, tryNext);
+  }
+  tryNext();
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -846,14 +871,14 @@ function drawLabel(name, price, barcode, canvas) {
   }
 }
 
-// ─── Camera scanner (html5-qrcode) ───────────────────────────────────────
-let html5Scanner = null;
+// ─── Camera scanner (ZXing — works on iOS Safari, Android, desktop) ────────
+let zxingReader  = null;
+let zxingStream  = null;
 let scanCooldown = false;
 
 function openCamera() {
   document.getElementById('camera-modal').classList.add('open');
-  document.getElementById('cam-result').textContent = 'Initialising camera…';
-  document.getElementById('cam-result').className = '';
+  document.getElementById('cam-result').textContent = 'Starting camera…';
   startCamera();
 }
 
@@ -863,26 +888,34 @@ function closeCamera() {
 }
 
 function stopCamera() {
-  if (html5Scanner) {
-    html5Scanner.stop()
-      .catch(() => {})
-      .finally(() => { try { html5Scanner.clear(); } catch(e){} html5Scanner = null; });
+  // Stop ZXing decode loop
+  if (zxingReader) {
+    try { zxingReader.reset(); } catch(e) {}
+    zxingReader = null;
   }
+  // Stop all video tracks so camera light goes off
+  if (zxingStream) {
+    zxingStream.getTracks().forEach(t => t.stop());
+    zxingStream = null;
+  }
+  // Clear the video element
+  const vid = document.getElementById('cam-video-el');
+  if (vid) { vid.srcObject = null; vid.load(); }
 }
 
-function showScanBanner(match, rawText, val) {
+function showScanBanner(match, rawText) {
   const banner = document.getElementById('scan-banner');
   const bar    = document.getElementById('sb-bar');
 
   if (match) {
-    banner.className       = 'found';
+    banner.className = 'found';
     document.getElementById('sb-icon').textContent  = '✓';
     document.getElementById('sb-name').textContent  = match.name;
     document.getElementById('sb-price').textContent = match.price;
     document.getElementById('sb-bc').textContent    = rawText;
-    document.getElementById('sb-msg').textContent   = 'Label added — scanning again in 3s';
+    document.getElementById('sb-msg').textContent   = 'Label added — next scan in 3s';
   } else {
-    banner.className       = 'missing';
+    banner.className = 'missing';
     document.getElementById('sb-icon').textContent  = '✕';
     document.getElementById('sb-name').textContent  = 'Not found';
     document.getElementById('sb-price').textContent = '';
@@ -891,18 +924,12 @@ function showScanBanner(match, rawText, val) {
   }
 
   banner.style.display = 'flex';
-
-  // Countdown bar — start at 100% then shrink to 0 over 3s
   bar.style.transition = 'none';
   bar.style.width      = '100%';
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      bar.style.transition = 'width 3s linear';
-      bar.style.width      = '0%';
-    });
-  });
-
-  // Hide scan line while banner is shown
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition = 'width 3s linear';
+    bar.style.width      = '0%';
+  }));
   document.getElementById('scan-line').style.display = 'none';
 }
 
@@ -911,53 +938,83 @@ function hideScanBanner() {
   document.getElementById('scan-line').style.display   = 'block';
 }
 
-function startCamera() {
-  if (!window.Html5Qrcode) {
-    document.getElementById('cam-result').textContent = '⚠ Scanner library not loaded — please refresh the page';
+async function startCamera() {
+  const camResult = document.getElementById('cam-result');
+  const camWrap   = document.getElementById('camera-wrap');
+
+  // Check ZXing loaded
+  const ZX = window.ZXingBrowser || window.ZXing;
+  if (!ZX) {
+    camResult.textContent = '⚠ Scanner library not loaded — refresh and try again';
     return;
   }
 
-  // Clear any leftover content in the div
-  const camDiv = document.getElementById('camera-video');
-  camDiv.innerHTML = '';
+  // Build a <video> element and put it in camera-wrap
+  let vid = document.getElementById('cam-video-el');
+  if (!vid) {
+    vid = document.createElement('video');
+    vid.id          = 'cam-video-el';
+    vid.autoplay    = true;
+    vid.muted       = true;
+    vid.playsinline = true;   // CRITICAL for iOS — prevents fullscreen takeover
+    vid.setAttribute('playsinline', '');
+    vid.setAttribute('webkit-playsinline', '');
+    vid.style.cssText = 'width:100%;display:block;';
+    // Insert before scan-line
+    const scanLine = document.getElementById('scan-line');
+    camWrap.insertBefore(vid, scanLine);
+  }
 
-  html5Scanner = new Html5Qrcode('camera-video');
+  try {
+    // iOS Safari needs exact constraints — facingMode environment
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
 
-  html5Scanner.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 260, height: 130 } },
-    (decodedText) => {
-      if (scanCooldown) return;
+    zxingStream     = await navigator.mediaDevices.getUserMedia(constraints);
+    vid.srcObject   = zxingStream;
+    await vid.play().catch(() => {}); // iOS sometimes needs a manual play()
+
+    camResult.textContent = '👀 Point camera at a barcode…';
+
+    // Start ZXing continuous decode
+    zxingReader = new ZX.BrowserMultiFormatReader();
+    zxingReader.decodeFromVideoElement(vid, (result, err) => {
+      // result is null on failed frames — only act on real results
+      if (!result || scanCooldown) return;
+
       scanCooldown = true;
+      const rawText = result.getText();
+      const val     = normalise(rawText);
+      const match   = products[val] || products[String(Number(val))] || products[val.replace(/^0+/, '')];
 
-      const val   = normalise(decodedText);
-      const match = products[val] || products[String(Number(val))] || products[val.replace(/^0+/, '')];
-
-      showScanBanner(match, decodedText, val);
+      showScanBanner(match, rawText);
 
       if (match) {
-        scanInput.value = decodedText;
+        scanInput.value = rawText;
         currentMatch    = { barcode: val, name: match.name, price: match.price };
         addLabel();
       }
 
-      // Resume scanning after 3 seconds
       setTimeout(() => {
         hideScanBanner();
-        scanCooldown = false;
-        document.getElementById('cam-result').textContent = '👀 Point camera at next barcode…';
+        scanCooldown  = false;
+        camResult.textContent = '👀 Point camera at next barcode…';
       }, 3000);
-    },
-    () => {} // ignore per-frame decode errors
-  ).then(() => {
-    document.getElementById('cam-result').textContent = '👀 Point camera at a barcode…';
-  }).catch(err => {
+    });
+
+  } catch(err) {
     const msg = String(err);
-    document.getElementById('cam-result').textContent =
-      msg.includes('NotAllowed') || msg.includes('Permission') || msg.includes('denied')
-        ? '⚠ Camera permission denied — please allow camera access in your browser settings'
+    camResult.textContent =
+      (msg.includes('NotAllowed') || msg.includes('Permission') || msg.includes('denied'))
+        ? '⚠ Camera permission denied — tap Allow when prompted, or check Safari Settings → Camera'
         : '⚠ Could not start camera: ' + msg;
-  });
+  }
 }
 
 // ─── Omni scanner screen ─────────────────────────────────────────────────
